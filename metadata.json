@@ -1,0 +1,5 @@
+{
+  "name": "Visualizador de etapas (ETAPAS)",
+  "description": "Painel interativo para gestão e visualização de etapas municipais municipais em diversas áreas como Saúde, Educação e Infraestrutura.",
+  "requestFramePermissions": []
+}
