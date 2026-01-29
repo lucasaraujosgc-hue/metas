@@ -58,6 +58,20 @@ export const TOPICS: TopicDef[] = [
     color: 'bg-sky-600', // Azul
     description: 'Metas, diretrizes e projetos futuros.',
   },
+  {
+    id: TopicId.CONTROLADORIA,
+    label: 'Controladoria',
+    iconName: 'Scale',
+    color: 'bg-indigo-600', // Roxo/Indigo
+    description: 'Controle interno e transparência.',
+  },
+  {
+    id: TopicId.PROCURADORIA,
+    label: 'Procuradoria',
+    iconName: 'Gavel',
+    color: 'bg-slate-600', // Cinza
+    description: 'Assuntos jurídicos e legais.',
+  },
 ];
 
 export const INITIAL_POSTS: Post[] = [];

@@ -8,6 +8,8 @@ export enum TopicId {
   AGRICULTURA = 'agricultura',
   INFRAESTRUTURA = 'infraestrutura',
   PLANEJAMENTO = 'planejamento',
+  CONTROLADORIA = 'controladoria',
+  PROCURADORIA = 'procuradoria',
 }
 
 export interface HistoricoItem {
@@ -17,14 +19,25 @@ export interface HistoricoItem {
   autor: string;
 }
 
+export interface Vinculo {
+  tipo: 'secretaria' | 'outro';
+  valor: string; // TopicId ou string livre
+}
+
+export interface NotaEtapa {
+  id: string;
+  texto: string;
+  cor: 'green' | 'yellow' | 'red';
+}
+
 export interface Etapa {
   id: string;
   descricao: string;
   prazo: string; // YYYY-MM-DD
   concluido: boolean;
   dataConclusao?: string;
-  secretariaVinculada?: TopicId | ''; // Opcional: vínculo com outra secretaria
-  observacao?: string;
+  vinculos: Vinculo[]; // Substitui secretariaVinculada
+  notas: NotaEtapa[]; // Observações coloridas
 }
 
 export interface Meta {
@@ -51,6 +64,8 @@ export interface Meta {
   // Propriedades calculadas no Frontend (não salvas no banco necessariamente, mas usadas na UI)
   computedStatus?: 'green' | 'yellow' | 'red';
   computedProgress?: number;
+  isExternal?: boolean; // Flag para indicar se é uma meta vinculada de outra secretaria
+  originTopicId?: TopicId; // TopicId original se for externa
 }
 
 export type Post = Meta;

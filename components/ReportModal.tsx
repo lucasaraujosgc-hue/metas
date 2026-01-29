@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { X, Target, Calendar, User, CheckCircle2, Circle, Link as LinkIcon, MessageSquare, AlertTriangle, Clock, ListChecks } from 'lucide-react';
 import { Meta } from '../types';
@@ -36,6 +35,11 @@ export const ReportModal = ({ post, onClose }: { post: Meta, onClose: () => void
                 <span className="text-slate-500 text-xs font-bold uppercase tracking-widest flex items-center gap-1">
                     <Target size={12}/> {TOPICS.find(t => t.id === post.topicId)?.label}
                 </span>
+                {post.isExternal && (
+                    <span className="text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded text-[10px] font-black uppercase flex items-center gap-1">
+                        <LinkIcon size={10}/> Vinculada
+                    </span>
+                )}
              </div>
              <h2 className="text-3xl font-black text-white leading-tight">{post.titulo}</h2>
              <div className="flex items-center gap-6 text-sm text-slate-400 font-medium">
@@ -64,33 +68,59 @@ export const ReportModal = ({ post, onClose }: { post: Meta, onClose: () => void
              
              <div className="space-y-3">
                 {post.etapas.map((etapa, idx) => (
-                    <div key={idx} className={`p-4 rounded-2xl border transition-all flex gap-4 ${etapa.concluido ? 'bg-emerald-950/10 border-emerald-500/20' : 'bg-slate-900/40 border-slate-800'}`}>
-                        <div className={`mt-1 ${etapa.concluido ? 'text-emerald-500' : 'text-slate-600'}`}>
-                            {etapa.concluido ? <CheckCircle2 size={20}/> : <Circle size={20}/>}
-                        </div>
-                        <div className="flex-1">
-                            <h4 className={`text-sm font-bold ${etapa.concluido ? 'text-emerald-100 line-through opacity-70' : 'text-slate-200'}`}>{etapa.descricao}</h4>
-                            <div className="flex items-center gap-4 mt-2">
-                                <span className={`text-[10px] font-bold uppercase flex items-center gap-1 ${etapa.concluido ? 'text-emerald-500/50' : 'text-slate-500'}`}>
-                                    <Clock size={10}/> {new Date(etapa.prazo).toLocaleDateString()}
-                                </span>
-                                {etapa.secretariaVinculada && (
-                                    <span className="text-[10px] font-bold uppercase flex items-center gap-1 text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                                        <LinkIcon size={10}/> {TOPICS.find(t => t.id === etapa.secretariaVinculada)?.label}
+                    <div key={idx} className={`p-4 rounded-2xl border transition-all flex flex-col gap-3 ${etapa.concluido ? 'bg-emerald-950/10 border-emerald-500/20' : 'bg-slate-900/40 border-slate-800'}`}>
+                        <div className="flex gap-4">
+                            <div className={`mt-1 ${etapa.concluido ? 'text-emerald-500' : 'text-slate-600'}`}>
+                                {etapa.concluido ? <CheckCircle2 size={20}/> : <Circle size={20}/>}
+                            </div>
+                            <div className="flex-1">
+                                <h4 className={`text-sm font-bold ${etapa.concluido ? 'text-emerald-100 line-through opacity-70' : 'text-slate-200'}`}>{etapa.descricao}</h4>
+                                <div className="flex flex-wrap items-center gap-3 mt-2">
+                                    <span className={`text-[10px] font-bold uppercase flex items-center gap-1 ${etapa.concluido ? 'text-emerald-500/50' : 'text-slate-500'}`}>
+                                        <Clock size={10}/> {new Date(etapa.prazo).toLocaleDateString()}
                                     </span>
-                                )}
+                                    
+                                    {/* Exibição dos Vínculos */}
+                                    {etapa.vinculos?.map((v, vIdx) => (
+                                        <span key={vIdx} className="text-[9px] font-bold uppercase flex items-center gap-1 text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                                            <LinkIcon size={10}/> {v.tipo === 'secretaria' ? TOPICS.find(t => t.id === v.valor)?.label : v.valor}
+                                        </span>
+                                    ))}
+                                    
+                                    {/* Fallback para legado */}
+                                    {(etapa as any).secretariaVinculada && !etapa.vinculos && (
+                                        <span className="text-[9px] font-bold uppercase flex items-center gap-1 text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+                                            <LinkIcon size={10}/> {TOPICS.find(t => t.id === (etapa as any).secretariaVinculada)?.label}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
+
+                        {/* Notas da Etapa */}
+                        {etapa.notas && etapa.notas.length > 0 && (
+                            <div className="ml-10 space-y-1">
+                                {etapa.notas.map((nota, nIdx) => (
+                                    <div key={nIdx} className={`text-[11px] px-3 py-1.5 rounded-lg border inline-block mr-2 mb-1 ${
+                                        nota.cor === 'red' ? 'bg-red-500/10 border-red-500/20 text-red-300' : 
+                                        nota.cor === 'yellow' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 
+                                        'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                                    }`}>
+                                        {nota.texto}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 ))}
                 {post.etapas.length === 0 && <p className="text-slate-500 italic text-sm">Nenhuma etapa cadastrada.</p>}
              </div>
           </section>
 
-          {/* Histórico / Observações */}
+          {/* Histórico / Observações Gerais */}
           <section>
              <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2 mb-4 border-b border-slate-800 pb-2">
-                <MessageSquare size={18} className="text-purple-500"/> Histórico e Observações
+                <MessageSquare size={18} className="text-purple-500"/> Histórico e Observações Gerais
              </h3>
              <div className="space-y-4">
                 {post.historico && post.historico.length > 0 ? [...post.historico].reverse().map((hist, idx) => (

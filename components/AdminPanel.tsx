@@ -1,13 +1,12 @@
-
 import React, { useState, useRef } from 'react';
-import { X, Plus, Lock, Save, Trash2, Calendar, LayoutList, AlertTriangle, User, FileText, CheckSquare, Square, Link as LinkIcon } from 'lucide-react';
-import { Meta, TopicId, Etapa, HistoricoItem } from '../types';
+import { X, Plus, Lock, Save, Trash2, Calendar, LayoutList, AlertTriangle, User, FileText, CheckSquare, Square, Link as LinkIcon, MessageSquare, ArrowDown } from 'lucide-react';
+import { Meta, TopicId, Etapa, HistoricoItem, Vinculo, NotaEtapa } from '../types';
 import { TOPICS } from '../constants';
 
 interface AdminPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  posts: Meta[]; // Posts agora são Metas
+  posts: Meta[];
   onAddPost: (meta: Omit<Meta, 'id' | 'createdAt' | 'order'>) => Promise<boolean | void>;
   onEditPost: (id: string, meta: Partial<Meta>) => Promise<boolean | void>;
   onDeletePost: (postId: string) => void;
@@ -37,7 +36,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [prazoGeral, setPrazoGeral] = useState('');
-  const [diasAlerta, setDiasAlerta] = useState(7); // Padrão 7 dias para alerta
+  const [diasAlerta, setDiasAlerta] = useState(7);
   const [responsavel, setResponsavel] = useState('');
   
   // Etapas State
@@ -77,27 +76,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setPrazoGeral(meta.prazoGeral);
     setDiasAlerta(meta.diasAlerta);
     setResponsavel(meta.responsavel);
-    setEtapas(meta.etapas || []);
+    // Garantir que vinculos e notas existam (migração de dados antigos)
+    setEtapas(meta.etapas.map(e => ({
+        ...e,
+        vinculos: e.vinculos || ((e as any).secretariaVinculada ? [{ tipo: 'secretaria', valor: (e as any).secretariaVinculada }] : []),
+        notas: e.notas || []
+    })) || []);
     setHistorico(meta.historico || []);
     setActiveTab('form');
   };
 
-  const addEtapa = () => {
+  // --- LÓGICA DE ETAPAS ---
+
+  const insertEtapa = (index: number) => {
     const novaEtapa: Etapa = {
         id: Date.now().toString(),
         descricao: '',
-        prazo: prazoGeral, // Herda o prazo geral por padrão
+        prazo: prazoGeral,
         concluido: false,
-        secretariaVinculada: ''
+        vinculos: [],
+        notas: []
     };
-    setEtapas([...etapas, novaEtapa]);
+    const novas = [...etapas];
+    novas.splice(index + 1, 0, novaEtapa);
+    setEtapas(novas);
+  };
+
+  const addEtapa = () => {
+      insertEtapa(etapas.length - 1);
   };
 
   const updateEtapa = (index: number, field: keyof Etapa, value: any) => {
     const novas = [...etapas];
     (novas[index] as any)[field] = value;
-    
-    // Se marcou como concluído, podemos adicionar histórico automático (opcional)
     if (field === 'concluido' && value === true && !novas[index].dataConclusao) {
         novas[index].dataConclusao = new Date().toISOString();
     }
@@ -108,13 +119,47 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setEtapas(etapas.filter((_, i) => i !== index));
   };
 
+  // --- LÓGICA DE VÍNCULOS NA ETAPA ---
+  
+  const addVinculo = (index: number, tipo: 'secretaria' | 'outro', valor: string) => {
+      if (!valor) return;
+      const novas = [...etapas];
+      const vinculoExistente = novas[index].vinculos.find(v => v.tipo === tipo && v.valor === valor);
+      if (!vinculoExistente) {
+          novas[index].vinculos.push({ tipo, valor });
+      }
+      setEtapas(novas);
+  };
+
+  const removeVinculo = (etapaIndex: number, vinculoIndex: number) => {
+      const novas = [...etapas];
+      novas[etapaIndex].vinculos = novas[etapaIndex].vinculos.filter((_, i) => i !== vinculoIndex);
+      setEtapas(novas);
+  };
+
+  // --- LÓGICA DE NOTAS NA ETAPA ---
+
+  const addNota = (index: number, texto: string, cor: 'green' | 'yellow' | 'red') => {
+      if (!texto.trim()) return;
+      const novas = [...etapas];
+      novas[index].notas.push({ id: Date.now().toString(), texto, cor });
+      setEtapas(novas);
+  };
+
+  const removeNota = (etapaIndex: number, notaIndex: number) => {
+      const novas = [...etapas];
+      novas[etapaIndex].notas = novas[etapaIndex].notas.filter((_, i) => i !== notaIndex);
+      setEtapas(novas);
+  };
+
+  // ---------------------------
+
   const handleSubmit = async () => {
     if (!titulo || !prazoGeral) {
         alert("Título e Prazo Geral são obrigatórios.");
         return;
     }
 
-    // Processar nova observação se houver
     let finalHistorico = [...historico];
     if (novaObs.trim()) {
         finalHistorico.push({
@@ -263,56 +308,137 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                 <LayoutList size={16} className="text-emerald-500"/> Etapas do Processo
                             </h3>
                             <button onClick={addEtapa} className="text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20 transition-all flex items-center gap-1">
-                                <Plus size={12}/> Adicionar Etapa
+                                <Plus size={12}/> Adicionar Etapa Final
                             </button>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {etapas.map((etapa, idx) => (
-                                <div key={idx} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex flex-col md:flex-row gap-4 items-start md:items-center relative group">
-                                    <div className="flex items-center gap-3">
-                                        <button onClick={() => updateEtapa(idx, 'concluido', !etapa.concluido)} className={`shrink-0 transition-colors ${etapa.concluido ? 'text-emerald-500' : 'text-slate-600 hover:text-slate-400'}`}>
-                                            {etapa.concluido ? <CheckSquare size={24}/> : <Square size={24}/>}
-                                        </button>
-                                        <span className="text-[10px] font-black text-slate-600 uppercase">#{idx + 1}</span>
-                                    </div>
-                                    
-                                    <div className="flex-1 w-full space-y-2 md:space-y-0 md:grid md:grid-cols-12 md:gap-3">
-                                        <input 
-                                            value={etapa.descricao} 
-                                            onChange={e => updateEtapa(idx, 'descricao', e.target.value)} 
-                                            className="col-span-6 bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-sm text-white focus:border-emerald-500 outline-none placeholder:text-slate-700"
-                                            placeholder="Descrição da etapa"
-                                        />
-                                        <input 
-                                            type="date"
-                                            value={etapa.prazo} 
-                                            onChange={e => updateEtapa(idx, 'prazo', e.target.value)} 
-                                            className="col-span-3 bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-xs text-slate-300 focus:border-emerald-500 outline-none"
-                                        />
-                                        <div className="col-span-3 relative">
-                                            <LinkIcon size={12} className="absolute left-2 top-3 text-slate-600"/>
-                                            <select 
-                                                value={etapa.secretariaVinculada} 
-                                                onChange={e => updateEtapa(idx, 'secretariaVinculada', e.target.value)}
-                                                className="w-full bg-slate-950 border border-slate-800 p-2.5 pl-7 rounded-lg text-[10px] text-slate-300 focus:border-emerald-500 outline-none appearance-none"
-                                            >
-                                                <option value="">Sem vínculo</option>
-                                                {TOPICS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-                                            </select>
+                                <div key={idx} className="relative group/item">
+                                    <div className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex flex-col gap-4">
+                                        <div className="flex items-start gap-3">
+                                            <button onClick={() => updateEtapa(idx, 'concluido', !etapa.concluido)} className={`shrink-0 transition-colors mt-1 ${etapa.concluido ? 'text-emerald-500' : 'text-slate-600 hover:text-slate-400'}`}>
+                                                {etapa.concluido ? <CheckSquare size={24}/> : <Square size={24}/>}
+                                            </button>
+                                            
+                                            <div className="flex-1 space-y-3">
+                                                {/* Linha Principal da Etapa */}
+                                                <div className="flex flex-col md:flex-row gap-3">
+                                                    <div className="flex-1">
+                                                        <span className="text-[9px] font-black text-slate-500 uppercase mb-1 block">Descrição da Etapa #{idx+1}</span>
+                                                        <input 
+                                                            value={etapa.descricao} 
+                                                            onChange={e => updateEtapa(idx, 'descricao', e.target.value)} 
+                                                            className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-sm text-white focus:border-emerald-500 outline-none"
+                                                            placeholder="O que deve ser feito?"
+                                                        />
+                                                    </div>
+                                                    <div className="w-full md:w-40">
+                                                        <span className="text-[9px] font-black text-slate-500 uppercase mb-1 block">Prazo da Etapa</span>
+                                                        <input 
+                                                            type="date"
+                                                            value={etapa.prazo} 
+                                                            onChange={e => updateEtapa(idx, 'prazo', e.target.value)} 
+                                                            className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-xs text-slate-300 focus:border-emerald-500 outline-none"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Ferramentas da Etapa (Vínculos e Notas) */}
+                                                <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-slate-800/50">
+                                                    
+                                                    {/* Vínculos */}
+                                                    <div className="flex-1 min-w-[200px]">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <LinkIcon size={12} className="text-slate-500"/>
+                                                            <span className="text-[10px] font-black text-slate-500 uppercase">Vincular a Outra Secretaria</span>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            <select 
+                                                                className="bg-slate-950 border border-slate-800 text-[10px] text-white rounded-lg p-1.5 outline-none"
+                                                                onChange={(e) => {
+                                                                    if(e.target.value) addVinculo(idx, 'secretaria', e.target.value);
+                                                                    e.target.value = '';
+                                                                }}
+                                                            >
+                                                                <option value="">+ Secretaria</option>
+                                                                {TOPICS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                                                            </select>
+                                                            
+                                                            {/* Input para "Outro" */}
+                                                            <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-0.5">
+                                                                <input 
+                                                                    className="bg-transparent text-[10px] text-white w-20 px-1 outline-none" 
+                                                                    placeholder="+ Outro"
+                                                                    onKeyDown={(e) => {
+                                                                        if(e.key === 'Enter') {
+                                                                            addVinculo(idx, 'outro', e.currentTarget.value);
+                                                                            e.currentTarget.value = '';
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
+
+                                                            {etapa.vinculos?.map((v, vIdx) => (
+                                                                <span key={vIdx} className="text-[9px] font-bold uppercase flex items-center gap-1 bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded border border-blue-500/20">
+                                                                    {v.tipo === 'secretaria' ? TOPICS.find(t => t.id === v.valor)?.label : v.valor}
+                                                                    <button onClick={() => removeVinculo(idx, vIdx)} className="hover:text-red-400"><X size={10}/></button>
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Notas/Observações Coloridas */}
+                                                    <div className="flex-1 min-w-[200px]">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <MessageSquare size={12} className="text-slate-500"/>
+                                                            <span className="text-[10px] font-black text-slate-500 uppercase">Observações da Etapa</span>
+                                                        </div>
+                                                        <div className="flex flex-col gap-2">
+                                                            <div className="flex gap-1">
+                                                                <input 
+                                                                    className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-[10px] text-white w-full outline-none" 
+                                                                    placeholder="Nova observação..." 
+                                                                    id={`input-obs-${idx}`}
+                                                                />
+                                                                <button onClick={() => { const el = document.getElementById(`input-obs-${idx}`) as HTMLInputElement; addNota(idx, el.value, 'green'); el.value=''; }} className="w-6 h-6 rounded bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white flex items-center justify-center transition-colors"><div className="w-2 h-2 rounded-full bg-current"></div></button>
+                                                                <button onClick={() => { const el = document.getElementById(`input-obs-${idx}`) as HTMLInputElement; addNota(idx, el.value, 'yellow'); el.value=''; }} className="w-6 h-6 rounded bg-amber-500/20 text-amber-500 hover:bg-amber-500 hover:text-white flex items-center justify-center transition-colors"><div className="w-2 h-2 rounded-full bg-current"></div></button>
+                                                                <button onClick={() => { const el = document.getElementById(`input-obs-${idx}`) as HTMLInputElement; addNota(idx, el.value, 'red'); el.value=''; }} className="w-6 h-6 rounded bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center transition-colors"><div className="w-2 h-2 rounded-full bg-current"></div></button>
+                                                            </div>
+                                                            <div className="flex flex-col gap-1">
+                                                                {etapa.notas?.map((nota, nIdx) => (
+                                                                    <div key={nIdx} className={`text-[9px] px-2 py-1 rounded border flex justify-between items-center ${nota.cor === 'red' ? 'bg-red-500/10 border-red-500/20 text-red-300' : nota.cor === 'yellow' ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'}`}>
+                                                                        <span>{nota.texto}</span>
+                                                                        <button onClick={() => removeNota(idx, nIdx)}><X size={10}/></button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+
+                                            <button onClick={() => removeEtapa(idx)} className="p-2 text-slate-700 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
                                         </div>
                                     </div>
-
-                                    <button onClick={() => removeEtapa(idx)} className="p-2 text-slate-700 hover:text-red-500 transition-colors"><Trash2 size={16}/></button>
+                                    
+                                    {/* Botão de Inserção Entre Etapas */}
+                                    <div className="h-4 flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                        <div className="h-px bg-slate-800 w-full"></div>
+                                        <button onClick={() => insertEtapa(idx)} className="absolute bg-slate-800 hover:bg-emerald-600 text-slate-400 hover:text-white text-[9px] font-bold uppercase px-2 py-0.5 rounded-full transition-colors flex items-center gap-1">
+                                            <ArrowDown size={10}/> Inserir Etapa Abaixo
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                             {etapas.length === 0 && <div className="text-center text-slate-600 text-xs italic py-4 border border-dashed border-slate-800 rounded-xl">Nenhuma etapa definida.</div>}
                         </div>
                     </section>
 
-                    {/* Bloco 3: Observações / Histórico */}
+                    {/* Bloco 3: Observações / Histórico Geral */}
                     <section className="space-y-4 pt-4 border-t border-slate-800">
-                        <h3 className="text-sm font-black text-white uppercase tracking-widest">Adicionar Observação / Justificativa</h3>
+                        <h3 className="text-sm font-black text-white uppercase tracking-widest">Adicionar Observação / Justificativa (Geral)</h3>
                         <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
                             <div className="flex gap-4">
                                 <label className="flex items-center gap-2 cursor-pointer">

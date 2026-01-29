@@ -99,16 +99,13 @@ function App() {
 
     if (usingServer) {
       try {
-        // Adaptando para o esquema existente do backend (mapeando campos novos para colunas antigas onde der, ou jogando tudo em extraData)
-        // O backend espera: id, topicId, description, chartConfig, createdAt, extraData
-        // Vamos usar 'description' para a descrição da meta e 'chartConfig' passaremos vazio/dummy.
         const payload = {
             id: newPost.id,
             topicId: newPost.topicId,
-            description: newPost.descricao, // Map description column
-            chartConfig: { type: 'bar', title: newPost.titulo, data: [] }, // Dummy to satisfy DB constraint if any
+            description: newPost.descricao, 
+            chartConfig: { type: 'bar', title: newPost.titulo, data: [] }, 
             createdAt: newPost.createdAt,
-            ...metaData // Todo o resto vai para extraData no backend
+            ...metaData 
         };
 
         const response = await fetch('/api/posts', {
@@ -118,7 +115,6 @@ function App() {
         });
         if (!response.ok) throw new Error('Erro salvar');
         
-        // Atualiza local state reprocessando
         setPosts(prev => [processMeta(newPost), ...prev]);
         return true;
       } catch (err) { return false; }
@@ -196,7 +192,6 @@ function App() {
         <main className="max-w-7xl mx-auto px-4 py-8">
           <Routes>
             <Route path="/" element={<DashboardView isLoading={isLoading} />} />
-            {/* Agora a rota de Topic usa o SummaryPanel filtrado, conforme pedido */}
             <Route path="/topic/:topicId" element={<TopicDetailView posts={posts} />} />
             <Route path="/painel" element={<SummaryPanel posts={posts} />} />
           </Routes>
@@ -220,30 +215,77 @@ function App() {
 
 const DashboardView = ({ isLoading }: { isLoading: boolean }) => {
   const navigate = useNavigate();
+  const mainTopics = TOPICS.filter(t => t.id !== TopicId.CONTROLADORIA && t.id !== TopicId.PROCURADORIA);
+  const sideTopics = TOPICS.filter(t => t.id === TopicId.CONTROLADORIA || t.id === TopicId.PROCURADORIA);
+
   return (
     <div className="space-y-10 py-10">
-      <div className="text-center">
-        <h2 className="text-4xl font-black text-white mb-2">Painel de Metas</h2>
-        <p className="text-slate-400 max-w-xl mx-auto">Acompanhamento transparente das metas e resultados da gestão municipal.</p>
+      <div className="flex flex-col md:flex-row justify-between items-end border-b border-slate-800 pb-8 gap-6">
+        <div>
+            <h2 className="text-4xl font-black text-white mb-2">Painel de Metas</h2>
+            <p className="text-slate-400 max-w-xl">Acompanhamento transparente das metas e resultados da gestão municipal.</p>
+        </div>
+        
+        {/* Secretarias Especiais (Controladoria/Procuradoria) */}
+        <div className="flex gap-4">
+            {sideTopics.map(topic => (
+                <button 
+                    key={topic.id}
+                    onClick={() => navigate(`/topic/${topic.id}`)}
+                    className="flex items-center gap-3 bg-slate-900 border border-slate-700 hover:border-emerald-500 rounded-xl p-3 transition-all group"
+                >
+                    <div className={`p-2 rounded-lg ${topic.color} bg-opacity-20`}>
+                        {/* Ícones específicos ou genéricos */}
+                        <div className={`w-4 h-4 rounded-full ${topic.color}`}></div>
+                    </div>
+                    <div className="text-left">
+                        <h4 className="text-xs font-bold text-white uppercase">{topic.label}</h4>
+                        <span className="text-[10px] text-slate-500 group-hover:text-emerald-400 transition-colors">Acessar &rarr;</span>
+                    </div>
+                </button>
+            ))}
+        </div>
       </div>
+
       {isLoading ? <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500"></div></div> : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {TOPICS.map(topic => <TopicCard key={topic.id} topic={topic} onClick={(id) => navigate(`/topic/${id}`)} />)}
+          {mainTopics.map(topic => <TopicCard key={topic.id} topic={topic} onClick={(id) => navigate(`/topic/${id}`)} />)}
         </div>
       )}
     </div>
   );
 };
 
-// Nova view de Tópico que reutiliza o SummaryPanel mas filtrado
 const TopicDetailView = ({ posts }: { posts: Meta[] }) => {
     const { topicId } = useParams();
-    // Filtra apenas os posts dessa secretaria
-    const topicPosts = useMemo(() => posts.filter(p => p.topicId === topicId), [posts, topicId]);
     
-    // Renderiza o SummaryPanel passando apenas os posts filtrados. 
-    // O SummaryPanel já tem lógica interna de agrupamento, mas se passarmos apenas de um tópico, ele exibirá apenas esse grupo.
-    return <SummaryPanel posts={topicPosts} />;
+    // Lógica Avançada de Filtragem:
+    // 1. Metas pertencentes a esta secretaria
+    // 2. Metas de OUTRAS secretarias que tenham etapas PENDENTES vinculadas a ESTA secretaria
+    
+    const relevantPosts = useMemo(() => {
+        return posts.filter(p => {
+            // Caso 1: Pertence a secretaria atual
+            if (p.topicId === topicId) return true;
+
+            // Caso 2: Tem etapa pendente vinculada a secretaria atual
+            const hasPendingLink = p.etapas.some(e => 
+                !e.concluido && 
+                e.vinculos?.some(v => v.tipo === 'secretaria' && v.valor === topicId)
+            );
+
+            if (hasPendingLink) {
+                // Marca como externa para a UI saber diferenciar
+                p.isExternal = true; 
+                p.originTopicId = p.topicId;
+                return true;
+            }
+
+            return false;
+        });
+    }, [posts, topicId]);
+    
+    return <SummaryPanel posts={relevantPosts} />;
 };
 
 export default App;

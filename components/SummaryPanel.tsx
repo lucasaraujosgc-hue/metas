@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Filter, Search, Target, LayoutDashboard, ArrowLeft, Calendar, User, ListChecks, ArrowRight } from 'lucide-react';
+import { Filter, Search, Target, LayoutDashboard, ArrowLeft, Calendar, User, ListChecks, ArrowRight, Link as LinkIcon } from 'lucide-react';
 import { Meta, TopicId } from '../types';
 import { TOPICS } from '../constants';
 import { Link } from 'react-router-dom';
@@ -15,26 +15,44 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ posts }) => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   
-  const [hoveredPostId, setHoveredPostId] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<Meta | null>(null);
 
   const filteredPosts = posts.filter(post => {
-    const matchesTopic = filterTopic === 'all' || post.topicId === filterTopic;
+    // Filtro de tópico: Se for 'all', mostra tudo. Se não, filtra pelo topicId, MAS se for uma meta externa exibida, ela deve passar.
+    // A lista 'posts' recebida já está filtrada pelo contexto (App.tsx), então 'filterTopic' aqui serve mais para o dropdown do painel geral.
+    const matchesTopic = filterTopic === 'all' || post.topicId === filterTopic || (post.isExternal && post.originTopicId === filterTopic);
+    
     const matchesStatus = filterStatus === 'all' || (post.computedStatus || 'green') === filterStatus;
     const matchesSearch = post.titulo.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesTopic && matchesStatus && matchesSearch;
   });
 
-  const groupedPosts = filterTopic === 'all' 
-    ? TOPICS.map(topic => ({
-        topic,
-        posts: filteredPosts.filter(p => p.topicId === topic.id)
-      })).filter(g => g.posts.length > 0)
-    : [{
-        topic: TOPICS.find(t => t.id === filterTopic)!,
-        posts: filteredPosts
-      }];
+  // Agrupamento
+  const groupedPosts = useMemo(() => {
+      if (filterTopic === 'all') {
+          // No painel geral, queremos agrupar por secretaria original
+          return TOPICS.map(topic => ({
+            topic,
+            posts: filteredPosts.filter(p => p.topicId === topic.id)
+          })).filter(g => g.posts.length > 0);
+      } else {
+          // Numa visão filtrada (ou dentro da secretaria), mostramos tudo numa lista, mas podemos ter misturado
+          // Se estivermos vendo "Educação", filteredPosts terá metas de Educação e Metas Externas vinculadas a Educação.
+          // Vamos agrupar visualmente pelo tópico da meta para ficar claro.
+          const groups = new Map<string, Meta[]>();
+          filteredPosts.forEach(p => {
+              const tId = p.topicId;
+              if(!groups.has(tId)) groups.set(tId, []);
+              groups.get(tId)?.push(p);
+          });
+          
+          return Array.from(groups.entries()).map(([tId, groupPosts]) => ({
+              topic: TOPICS.find(t => t.id === tId)!,
+              posts: groupPosts
+          }));
+      }
+  }, [filteredPosts, filterTopic]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -122,14 +140,13 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ posts }) => {
       {/* Lista de Metas */}
       <div className="space-y-8">
         {groupedPosts.map((group) => (
-            <div key={group.topic.id} className="space-y-3">
-                {filterTopic === 'all' && (
-                    <div className="flex items-center gap-3 px-2">
-                        <div className={`w-2 h-2 rounded-full ${group.topic.color}`}></div>
-                        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">{group.topic.label}</h3>
-                        <div className="h-px bg-slate-800 flex-1"></div>
-                    </div>
-                )}
+            <div key={group.topic?.id || 'unknown'} className="space-y-3">
+                {/* Cabeçalho do Grupo */}
+                <div className="flex items-center gap-3 px-2">
+                    <div className={`w-2 h-2 rounded-full ${group.topic?.color || 'bg-slate-500'}`}></div>
+                    <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">{group.topic?.label || 'Outros'}</h3>
+                    <div className="h-px bg-slate-800 flex-1"></div>
+                </div>
                 
                 <div className="grid gap-2">
                     {group.posts.map(post => {
@@ -141,8 +158,15 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ posts }) => {
                         <div 
                             key={post.id} 
                             onClick={() => setSelectedPost(post)}
-                            className="bg-slate-900/40 hover:bg-slate-800 border border-slate-800/50 hover:border-slate-700 p-5 rounded-2xl flex items-center justify-between transition-all cursor-pointer duration-300 group"
+                            className="bg-slate-900/40 hover:bg-slate-800 border border-slate-800/50 hover:border-slate-700 p-5 rounded-2xl flex items-center justify-between transition-all cursor-pointer duration-300 group relative overflow-hidden"
                         >
+                            {/* Indicador de Meta Externa (Vinculada) */}
+                            {post.isExternal && (
+                                <div className="absolute top-0 right-0 bg-blue-600 text-white text-[9px] font-black uppercase px-3 py-1 rounded-bl-xl shadow-lg z-10 flex items-center gap-1">
+                                    <LinkIcon size={10}/> Vinculada
+                                </div>
+                            )}
+
                             <div className="flex-1 pr-6">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
