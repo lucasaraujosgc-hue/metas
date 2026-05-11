@@ -46,6 +46,11 @@ export interface Meta {
   titulo: string;
   descricao: string;
   
+  // Detalhamento da Meta
+  problemaResolve?: string;
+  impactoPopulacao?: string;
+  justificativaEstrategica?: string;
+  
   // Controle de Prazos
   prazoGeral: string; // YYYY-MM-DD
   diasAlerta: number; // Quantos dias antes do prazo para ficar amarelo

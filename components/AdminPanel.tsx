@@ -35,6 +35,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [topicId, setTopicId] = useState<TopicId>(TopicId.EDUCACAO);
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [problemaResolve, setProblemaResolve] = useState('');
+  const [impactoPopulacao, setImpactoPopulacao] = useState('');
+  const [justificativaEstrategica, setJustificativaEstrategica] = useState('');
   const [prazoGeral, setPrazoGeral] = useState('');
   const [diasAlerta, setDiasAlerta] = useState(7);
   const [responsavel, setResponsavel] = useState('');
@@ -60,6 +63,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setEditingId(null);
     setTitulo('');
     setDescricao('');
+    setProblemaResolve('');
+    setImpactoPopulacao('');
+    setJustificativaEstrategica('');
     setPrazoGeral('');
     setDiasAlerta(7);
     setResponsavel('');
@@ -73,6 +79,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setTopicId(meta.topicId);
     setTitulo(meta.titulo);
     setDescricao(meta.descricao);
+    setProblemaResolve(meta.problemaResolve || '');
+    setImpactoPopulacao(meta.impactoPopulacao || '');
+    setJustificativaEstrategica(meta.justificativaEstrategica || '');
     setPrazoGeral(meta.prazoGeral);
     setDiasAlerta(meta.diasAlerta);
     setResponsavel(meta.responsavel);
@@ -174,6 +183,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         topicId,
         titulo,
         descricao,
+        problemaResolve,
+        impactoPopulacao,
+        justificativaEstrategica,
         prazoGeral,
         diasAlerta,
         responsavel,
@@ -277,9 +289,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             </div>
                         </div>
 
+                        <div className="grid md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase">Qual problema resolve?</label>
+                                <textarea value={problemaResolve} onChange={e => setProblemaResolve(e.target.value)} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-emerald-500 outline-none" rows={2} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase">Impacto direto na população</label>
+                                <textarea value={impactoPopulacao} onChange={e => setImpactoPopulacao(e.target.value)} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-emerald-500 outline-none" rows={2} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase">Justificativa estratégica</label>
+                                <textarea value={justificativaEstrategica} onChange={e => setJustificativaEstrategica(e.target.value)} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-emerald-500 outline-none" rows={2} />
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase">Descrição Detalhada</label>
-                            <textarea value={descricao} onChange={e => setDescricao(e.target.value)} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-emerald-500 outline-none" rows={3} />
+                            <label className="text-[10px] font-black text-slate-500 uppercase">Observações Adicionais (Opcional)</label>
+                            <textarea value={descricao} onChange={e => setDescricao(e.target.value)} className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:border-emerald-500 outline-none" rows={2} />
                         </div>
 
                         <div className="grid md:grid-cols-3 gap-6">

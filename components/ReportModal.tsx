@@ -52,10 +52,35 @@ export const ReportModal = ({ post, onClose }: { post: Meta, onClose: () => void
 
         <div className="flex-1 overflow-y-auto p-8 md:p-10 space-y-10 custom-scrollbar">
           
-          {/* Descrição */}
-          <section className="bg-slate-900/30 p-6 rounded-3xl border border-slate-800/50">
-             <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Descrição da Meta</h3>
-             <p className="text-slate-300 leading-relaxed text-sm">{post.descricao}</p>
+          {/* Descrição e Detalhamento */}
+          <section className="space-y-6">
+             <div className="grid md:grid-cols-3 gap-6">
+                {post.problemaResolve && (
+                    <div className="bg-slate-900/30 p-5 rounded-3xl border border-slate-800/50 space-y-2">
+                        <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Qual problema resolve?</h4>
+                        <p className="text-slate-300 text-xs leading-relaxed">{post.problemaResolve}</p>
+                    </div>
+                )}
+                {post.impactoPopulacao && (
+                    <div className="bg-slate-900/30 p-5 rounded-3xl border border-slate-800/50 space-y-2">
+                        <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Impacto na população</h4>
+                        <p className="text-slate-300 text-xs leading-relaxed">{post.impactoPopulacao}</p>
+                    </div>
+                )}
+                {post.justificativaEstrategica && (
+                    <div className="bg-slate-900/30 p-5 rounded-3xl border border-slate-800/50 space-y-2">
+                        <h4 className="text-[10px] font-black text-purple-500 uppercase tracking-widest">Justificativa estratégica</h4>
+                        <p className="text-slate-300 text-xs leading-relaxed">{post.justificativaEstrategica}</p>
+                    </div>
+                )}
+             </div>
+
+             {post.descricao && (
+                <div className="bg-slate-900/10 p-5 rounded-3xl border border-slate-800/30">
+                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Notas Adicionais</h4>
+                    <p className="text-slate-400 text-xs leading-relaxed">{post.descricao}</p>
+                </div>
+             )}
           </section>
 
           {/* Etapas */}
