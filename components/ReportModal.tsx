@@ -122,6 +122,22 @@ export const ReportModal = ({ post, onClose }: { post: Meta, onClose: () => void
                             </div>
                         </div>
 
+                        {/* Sub-etapas */}
+                        {etapa.subEtapas && etapa.subEtapas.length > 0 && (
+                            <div className="ml-10 space-y-1.5 pb-2">
+                                {etapa.subEtapas.map((sub, sIdx) => (
+                                    <div key={sIdx} className="flex items-center gap-2">
+                                        <div className={`shrink-0 ${sub.concluido ? 'text-emerald-500' : 'text-slate-700'}`}>
+                                            {sub.concluido ? <CheckCircle2 size={13}/> : <Circle size={13}/>}
+                                        </div>
+                                        <span className={`text-[11px] ${sub.concluido ? 'text-slate-500 line-through opacity-70' : 'text-slate-400'}`}>
+                                            {sub.descricao}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         {/* Notas da Etapa */}
                         {etapa.notas && etapa.notas.length > 0 && (
                             <div className="ml-10 space-y-1">

@@ -196,7 +196,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({ posts }) => {
                                     </div>
                                     <span className="text-[10px] font-black text-slate-400 min-w-[30px] text-right">{progress.toFixed(0)}%</span>
                                 </div>
-                                <p className="text-[10px] text-slate-500 mt-1">{post.etapas.filter(e => e.concluido).length} de {post.etapas.length} etapas concluídas</p>
+                                <p className="text-[10px] text-slate-500 mt-1">{progress.toFixed(0)}% progresso total • {post.etapas.filter(e => e.concluido).length} de {post.etapas.length} blocos principais</p>
                             </div>
 
                             <div className="flex items-center gap-4">

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, Plus, Lock, Save, Trash2, Calendar, LayoutList, AlertTriangle, User, FileText, CheckSquare, Square, Link as LinkIcon, MessageSquare, ArrowDown } from 'lucide-react';
-import { Meta, TopicId, Etapa, HistoricoItem, Vinculo, NotaEtapa } from '../types';
+import { Meta, TopicId, Etapa, SubEtapa, HistoricoItem, Vinculo, NotaEtapa } from '../types';
 import { TOPICS } from '../constants';
 
 interface AdminPanelProps {
@@ -161,6 +161,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       setEtapas(novas);
   };
 
+  // --- LÓGICA DE SUB-ETAPAS ---
+
+  const addSubEtapa = (etapaIdx: number) => {
+    const novas = [...etapas];
+    if (!novas[etapaIdx].subEtapas) novas[etapaIdx].subEtapas = [];
+    novas[etapaIdx].subEtapas!.push({
+      id: Date.now().toString(),
+      descricao: '',
+      concluido: false
+    });
+    setEtapas(novas);
+  };
+
+  const updateSubEtapa = (etapaIdx: number, subIdx: number, field: keyof SubEtapa, value: any) => {
+    const novas = [...etapas];
+    const sub = novas[etapaIdx].subEtapas![subIdx];
+    (sub as any)[field] = value;
+    setEtapas(novas);
+  };
+
+  const removeSubEtapa = (etapaIdx: number, subIdx: number) => {
+    const novas = [...etapas];
+    novas[etapaIdx].subEtapas = novas[etapaIdx].subEtapas!.filter((_, i) => i !== subIdx);
+    setEtapas(novas);
+  };
+
   // ---------------------------
 
   const handleSubmit = async () => {
@@ -258,7 +284,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                     <span className="text-[10px] text-slate-500 font-bold uppercase">{new Date(meta.prazoGeral).toLocaleDateString()}</span>
                                 </div>
                                 <h3 className="text-lg font-bold text-white">{meta.titulo}</h3>
-                                <p className="text-xs text-slate-400">{meta.etapas.filter(e => e.concluido).length}/{meta.etapas.length} etapas concluídas</p>
+                                <p className="text-xs text-slate-400">{meta.computedProgress?.toFixed(0)}% total ({meta.etapas.filter(e => e.concluido).length}/{meta.etapas.length} principais)</p>
                             </div>
                             <div className="flex gap-2">
                                 <button onClick={() => handleEditClick(meta)} className="p-3 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-xl transition-all"><LayoutList size={18}/></button>
@@ -357,7 +383,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                                             value={etapa.descricao} 
                                                             onChange={e => updateEtapa(idx, 'descricao', e.target.value)} 
                                                             className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-sm text-white focus:border-emerald-500 outline-none"
-                                                            placeholder="O que deve ser feito?"
+                                                            placeholder="O que deve be feito?"
                                                         />
                                                     </div>
                                                     <div className="w-full md:w-40">
@@ -369,6 +395,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                                             className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-xs text-slate-300 focus:border-emerald-500 outline-none"
                                                         />
                                                     </div>
+                                                </div>
+
+                                                {/* Sub-etapas */}
+                                                <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800/50 space-y-3">
+                                                    <div className="flex justify-between items-center border-b border-slate-800/50 pb-2">
+                                                        <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sub-etapas (Detalhamento)</h4>
+                                                        <button onClick={() => addSubEtapa(idx)} className="text-[8px] font-black uppercase text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                                                            <Plus size={10}/> Adicionar Sub-etapa
+                                                        </button>
+                                                    </div>
+                                                    {etapa.subEtapas && etapa.subEtapas.length > 0 ? (
+                                                        <div className="space-y-2">
+                                                            {etapa.subEtapas.map((sub, sIdx) => (
+                                                                <div key={sub.id} className="flex items-center gap-3 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50">
+                                                                    <button onClick={() => updateSubEtapa(idx, sIdx, 'concluido', !sub.concluido)} className={`shrink-0 transition-colors ${sub.concluido ? 'text-emerald-500' : 'text-slate-600 hover:text-slate-400'}`}>
+                                                                        {sub.concluido ? <CheckSquare size={16}/> : <Square size={16}/>}
+                                                                    </button>
+                                                                    <input 
+                                                                        value={sub.descricao} 
+                                                                        onChange={e => updateSubEtapa(idx, sIdx, 'descricao', e.target.value)} 
+                                                                        className="flex-1 bg-transparent text-[11px] text-slate-300 outline-none focus:text-white"
+                                                                        placeholder="Descreva a sub-etapa..."
+                                                                    />
+                                                                    <button onClick={() => removeSubEtapa(idx, sIdx)} className="text-slate-700 hover:text-red-500 transition-colors">
+                                                                        <Trash2 size={12}/>
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-[9px] text-slate-600 italic">Nenhuma sub-etapa adicionada.</p>
+                                                    )}
                                                 </div>
 
                                                 {/* Ferramentas da Etapa (Vínculos e Notas) */}

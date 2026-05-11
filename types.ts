@@ -30,6 +30,12 @@ export interface NotaEtapa {
   cor: 'green' | 'yellow' | 'red';
 }
 
+export interface SubEtapa {
+  id: string;
+  descricao: string;
+  concluido: boolean;
+}
+
 export interface Etapa {
   id: string;
   descricao: string;
@@ -38,6 +44,7 @@ export interface Etapa {
   dataConclusao?: string;
   vinculos: Vinculo[]; // Substitui secretariaVinculada
   notas: NotaEtapa[]; // Observações coloridas
+  subEtapas?: SubEtapa[];
 }
 
 export interface Meta {

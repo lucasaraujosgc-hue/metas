@@ -33,8 +33,14 @@ function App() {
 
       // 2. Calcular Progresso
       const totalEtapas = etapas.length;
-      const concluidas = etapas.filter((e: any) => e.concluido).length;
-      const progress = totalEtapas > 0 ? (concluidas / totalEtapas) * 100 : 0;
+      const progressSum = etapas.reduce((acc: number, e: any) => {
+          if (e.subEtapas && e.subEtapas.length > 0) {
+              const subConcluidas = e.subEtapas.filter((s: any) => s.concluido).length;
+              return acc + (subConcluidas / e.subEtapas.length);
+          }
+          return acc + (e.concluido ? 1 : 0);
+      }, 0);
+      const progress = totalEtapas > 0 ? (progressSum / totalEtapas) * 100 : 0;
 
       // 3. Calcular Status
       let status: 'green' | 'yellow' | 'red' = 'green';
